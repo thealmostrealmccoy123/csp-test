@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!-- ======================================================================= -->
+<!--                                                                         -->
+<!-- NAME                                                                    -->
+<!-- build.xml - JUnit Test Script                                           -->
+<!--                                                                         -->
+<!-- DESCRIPTION                                                             -->
+<!-- Run JUnit Test Cases                                                    -->
+<!--                                                                         -->
+<project name="csp-test-tools" default="content_security_policy_white_list_collector">
+
+  <description>CSP Test Tools</description>
+	
+  <taskdef name="contentSecurityPolicyWhiteListCollector"
+	 classname="csptest.anttask.ContentSecurityPolicyWhiteListCollector"
+	 classpath="C:/eclipse/workspaces/csp-test/bin/"/>	
+
+  <!-- ================================================ -->
+  <!-- resource_finder                                  -->
+  <!-- ================================================ -->
+  <target name="content_security_policy_white_list_collector" description="content security policy white list collector">
+	<contentSecurityPolicyWhiteListCollector baseDirectory="${projectroot}" includes="**\*.jsp, **\*.html, **\*.xml, **\*.properties"/>
+  </target>	
+	
+</project>
