@@ -31,17 +31,17 @@
 
     <servlet>
         <servlet-name>ReflectedXSS</servlet-name>
-        <servlet-class>ReflectedXSS</servlet-class>
+        <servlet-class>csptest.xss.ReflectedXSS</servlet-class>
     </servlet>
     
     <servlet>
         <servlet-name>StoredXSS</servlet-name>
-        <servlet-class>StoredXSS</servlet-class>
+        <servlet-class>csptest.xss.StoredXSS</servlet-class>
     </servlet>
     
     <servlet>
         <servlet-name>DOMBasedXSS</servlet-name>
-        <servlet-class>DOMBasedXSS</servlet-class>
+        <servlet-class>csptest.xss.DOMBasedXSS</servlet-class>
     </servlet>    
     
     <servlet-mapping>
