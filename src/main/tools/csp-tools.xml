@@ -2,10 +2,10 @@
 <!-- ======================================================================= -->
 <!--                                                                         -->
 <!-- NAME                                                                    -->
-<!-- build.xml - JUnit Test Script                                           -->
+<!-- csptools.xml - CSP Tools                                               -->
 <!--                                                                         -->
 <!-- DESCRIPTION                                                             -->
-<!-- Run JUnit Test Cases                                                    -->
+<!-- Run CSP Tools                                                           -->
 <!--                                                                         -->
 <project name="csp-test-tools" default="content_security_policy_white_list_collector">
 
@@ -13,13 +13,30 @@
 	
   <taskdef name="contentSecurityPolicyWhiteListCollector"
 	 classname="csptest.anttask.ContentSecurityPolicyWhiteListCollector"
-	 classpath="C:/eclipse/workspaces/csp-test/bin/"/>	
-
+	 classpath="C:/eclipse/workspaces/csp-test/bin/"/>
+	
+  <taskdef name="contentSecurityPolicyGenerator"
+	 classname="csptest.anttask.ContentSecurityPolicyGenerator">
+    <classpath>
+      <pathelement location="C:/eclipse/workspaces/csp-test/bin/"/>
+      <fileset dir="C:/eclipse/workspaces/csp-test/src/main/lib">
+       <include name="**/*.jar"/>
+      </fileset>    	
+  	</classpath>
+  </taskdef>	
+	
   <!-- ================================================ -->
-  <!-- resource_finder                                  -->
+  <!-- content_security_policy_white_list_collector    -->
   <!-- ================================================ -->
-  <target name="content_security_policy_white_list_collector" description="content security policy white list collector">
-	<contentSecurityPolicyWhiteListCollector baseDirectory="${projectroot}" includes="**\*.jsp, **\*.html, **\*.xml, **\*.properties"/>
-  </target>	
+  <target name="content_security_policy_white_list_collector" description="Usage: ant -f csp-tools.xml content_security_policy_white_list_collector -Dprojectroot=C:/eclipse/workspaces/csp-test/src/main/webapp">
+	<contentSecurityPolicyWhiteListCollector baseDirectory="${projectroot}" includes="**\*.jsp, **\*.html, **\*.xml, **\*.properties, **\*.js, **\*.css"/>
+  </target>
+	
+  <!-- ================================================ -->
+  <!-- content_security_policy_generator                -->
+  <!-- ================================================ -->
+  <target name="content_security_policy_generator" description="Usage: ant -f csp-tools.xml content_security_policy_generator -DresourceListLocation=C:/eclipse/workspaces/csp-test/src/main/webapp/csp_external_resource_list.xml -Dnonce=true -DreportUri=/csp_test/ContentSecurityPolicyViolationReporter -DreportOnly=false">
+	<contentSecurityPolicyGenerator resourceListLocation="${resourceListLocation}" nonce="${nonce}" reportUri="${reportUri}" reportOnly="${reportOnly}"/>
+  </target>
 	
 </project>
