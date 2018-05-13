@@ -44,6 +44,12 @@ import org.apache.tools.ant.taskdefs.MatchingTask;
 import org.apache.tools.ant.types.Resource;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+
+import csptest.common.ContentSecurityPolicyFactory;
+import csptest.common.ResourceParser;
+import csptest.common.ResourceType;
+import csptest.common.ResourceTypeDetail;
+
 import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.Project;
 
@@ -52,7 +58,7 @@ import org.apache.tools.ant.Project;
  * 1. Java tag libraries embedded in html tags makes it difficult to parse the resource value
  *    E.g. single quote versus double quote used in embedded java tag libraries
  *    
- * 2. Inconsistent html tag usage makes parsing diffult
+ * 2. Inconsistent html tag usage makes parsing difficult
  *    E.g. single quote versus double quote used to define resource.
  * 
  * @author thealmostrealmccoy
@@ -60,31 +66,41 @@ import org.apache.tools.ant.Project;
  */
 public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
     
-    private static final String SCRIPT_TAG_PATTERN = "<script.*</script>";
     private static final String SCRIPT_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX = "src=\"";
     private static final String SCRIPT_TAG_SRC_DOUBLEQUOTE_VALUE_SUFFIX = "\"";
     private static final String SCRIPT_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX = "src='";
     private static final String SCRIPT_TAG_SRC_SINGLEQUOTE_VALUE_SUFFIX = "'";    
-    private static final String IMAGE_TAG_PATTERN = "<img.*>";
+
     private static final String IMAGE_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX = "src=\"";
     private static final String IMAGE_TAG_SRC_DOUBLEQUOTE_VALUE_SUFFIX = "\"";
     private static final String IMAGE_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX = "src='";
     private static final String IMAGE_TAG_SRC_SINGLEQUOTE_VALUE_SUFFIX = "'";    
-    private static final String ANCHOR_TAG_PATTERN = "<a.*</a>";
+
     private static final String ANCHOR_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX = "href=\"";
     private static final String ANCHOR_TAG_HREF_DOUBLEQUOTE_VALUE_SUFFIX = "\"";
     private static final String ANCHOR_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX = "href='";
     private static final String ANCHOR_TAG_HREF_SINGLEQUOTE_VALUE_SUFFIX = "'";    
-    private static final String FRAME_TAG_PATTERN = "<iframe.*</iframe>";
+    
     private static final String FRAME_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX = "src=\"";
     private static final String FRAME_TAG_SRC_DOUBLEQUOTE_VALUE_SUFFIX = "\"";
     private static final String FRAME_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX = "src='";
     private static final String FRAME_TAG_SRC_SINGLEQUOTE_VALUE_SUFFIX = "'";
-    private static final String LINK_TAG_PATTERN = "<link.*>";
+
     private static final String LINK_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX = "href=\"";
     private static final String LINK_TAG_HREF_DOUBLEQUOTE_VALUE_SUFFIX = "\"";
     private static final String LINK_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX = "href='";
-    private static final String LINK_TAG_HREF_SINGLEQUOTE_VALUE_SUFFIX = "'";    
+    private static final String LINK_TAG_HREF_SINGLEQUOTE_VALUE_SUFFIX = "'";
+    private static final String LINK_TAG_MANIFEST_DOUBLEQUOTE_VALUE = "rel=\"manifest\"";
+    private static final String LINK_TAG_MANIFEST_SINGLEQUOTE_VALUE = "rel='manifest'";
+    
+    private static final String STYLE_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX = LINK_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX;
+    private static final String STYLE_TAG_HREF_DOUBLEQUOTE_VALUE_SUFFIX = LINK_TAG_HREF_DOUBLEQUOTE_VALUE_SUFFIX;
+    private static final String STYLE_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX = LINK_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX;
+    private static final String STYLE_TAG_HREF_SINGLEQUOTE_VALUE_SUFFIX = LINK_TAG_HREF_SINGLEQUOTE_VALUE_SUFFIX;
+    private static final String STYLE_TAG_STYLESHEET_DOUBLEQUOTE_VALUE = "rel=\"stylesheet\"";
+    private static final String STYLE_TAG_STYLESHEET_SINGLEQUOTE_VALUE = "rel='stylesheet'";    
+    
+    private static final String HTTP_MATCHER_REGEX = "^(http|https)://";
     
     private String baseDirectory;
     
@@ -100,6 +116,7 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
         resourceParsers.add(getImageTagResourceParser());
         resourceParsers.add(getFrameTagResourceParser());
         resourceParsers.add(getLinkTagResourceParser());
+        resourceParsers.add(getStyleTagResourceParser());
         setResourceParsers(resourceParsers);
     }
     
@@ -110,7 +127,11 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
         assert getIncludes()!=null;
         
         DirectoryScanner directoryScanner = new DirectoryScanner();
-        directoryScanner.setIncludes(getIncludes().split(","));
+        
+        if (getIncludes()!=null) {
+            directoryScanner.setIncludes(splitAndTrim());    
+        }
+        
         directoryScanner.setBasedir(new File(getBaseDirectory()));
         directoryScanner.scan();
         
@@ -230,60 +251,6 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
         
     }
     
-    private ResourceTypeDetail getResourceTypeDetailInstance() {
-        
-        return new ResourceTypeDetail() {
-            
-            private String name;
-            
-            private String pattern;
-            
-            private String fileDetail;
-            
-            private String value;
-
-            @Override
-            public void setName(String name) {
-                this.name = name;
-            }
-
-            @Override
-            public String getName() {
-                return name;
-            }
-
-            @Override
-            public void setPattern(String pattern) {
-                this.pattern = pattern;
-            }
-
-            @Override
-            public String getPattern() {
-                return pattern;
-            }
-
-            @Override
-            public void setFileDetail(String fileDetail) {
-                this.fileDetail = fileDetail;
-            }
-
-            @Override
-            public String getFileDetail() {
-                return fileDetail;
-            }
-
-            @Override
-            public void setValue(String value) {
-                this.value = value;
-            }
-
-            @Override
-            public String getValue() {
-                return value;
-            }
-        };
-    }
-    
     private ResourceParser getScriptTagResourceParser() {
         
         return new ResourceParser() {
@@ -291,94 +258,7 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
             @Override
             public List<ResourceTypeDetail> parseResource(String fileContent, Resource resource, String baseDirectory, StringBuilder logger) {
                 
-                assert fileContent!=null;
-                
-                assert resource!=null;
-                
-                assert baseDirectory!=null;
-                
-                assert logger!=null;
-                
-                List<ResourceTypeDetail> resourceTypeDetails = null;
-                
-                Pattern pattern = Pattern.compile(SCRIPT_TAG_PATTERN);
-
-                Matcher matcher = pattern.matcher(fileContent);
-                
-                while (matcher.find()) {
-                    
-                    String group = matcher.group();
-                    
-                    if (group!=null) {
-                        
-                        String scriptTagSrcValue = null;
-                        
-                        int scriptTagSrcValuePrefixIndex = group.indexOf(SCRIPT_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX);
-                        
-                        if (scriptTagSrcValuePrefixIndex!=-1) {
-                            
-                            String groupSubString = group.substring(scriptTagSrcValuePrefixIndex + SCRIPT_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX.length());
-                            
-                            if (groupSubString!=null) {
-                                
-                                int scriptTagSrcValueSuffixIndex = groupSubString.indexOf(SCRIPT_TAG_SRC_DOUBLEQUOTE_VALUE_SUFFIX);
-                                
-                                if (scriptTagSrcValueSuffixIndex!=-1) {
-                                    
-                                    scriptTagSrcValue = groupSubString.substring(0, scriptTagSrcValueSuffixIndex);
-                                    
-                                }
-                                
-                            }
-                            
-                        } else {
-                            
-                            scriptTagSrcValuePrefixIndex = group.indexOf(SCRIPT_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX);
-                            
-                            if (scriptTagSrcValuePrefixIndex!=-1) {
-                             
-                                String groupSubString = group.substring(scriptTagSrcValuePrefixIndex + SCRIPT_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX.length());
-                                
-                                if (groupSubString!=null) {
-                                    
-                                    int scriptTagSrcValueSuffixIndex = groupSubString.indexOf(SCRIPT_TAG_SRC_SINGLEQUOTE_VALUE_SUFFIX);
-                                    
-                                    if (scriptTagSrcValueSuffixIndex!=-1) {
-                                        
-                                        scriptTagSrcValue = groupSubString.substring(0, scriptTagSrcValueSuffixIndex);
-                                        
-                                    }
-                                    
-                                }
-                                
-                            }
-
-                        }
-                        
-                        if (scriptTagSrcValue!=null) {
-                            
-                            if (resourceTypeDetails==null) {
-                                resourceTypeDetails = new ArrayList<ResourceTypeDetail>();
-                            }
-                            
-                            ResourceTypeDetail resourceTypeDetail = getResourceTypeDetailInstance();
-                            resourceTypeDetail.setFileDetail(getFullyQualifiedPath(baseDirectory, resource));
-                            resourceTypeDetail.setName("script");
-                            resourceTypeDetail.setPattern(SCRIPT_TAG_PATTERN);
-                            resourceTypeDetail.setValue(scriptTagSrcValue);
-                            
-                            resourceTypeDetails.add(resourceTypeDetail);
-                            
-                            logger.append("File: " + resourceTypeDetail.getFileDetail() + " has " + resourceTypeDetail.getName() + " with value " + resourceTypeDetail.getValue());
-                            logger.append(System.getProperty("line.separator"));
-                            
-                        }
-                        
-                    }
-
-                }
-                
-                return resourceTypeDetails;
+               return parseResourceToResourceTypeDetail(fileContent, resource, baseDirectory, logger, ResourceType.SCRIPT, SCRIPT_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX, SCRIPT_TAG_SRC_DOUBLEQUOTE_VALUE_SUFFIX, SCRIPT_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX, SCRIPT_TAG_SRC_SINGLEQUOTE_VALUE_SUFFIX);
             }
             
         };
@@ -391,94 +271,7 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
             @Override
             public List<ResourceTypeDetail> parseResource(String fileContent, Resource resource, String baseDirectory, StringBuilder logger) {
                 
-                assert fileContent!=null;
-                
-                assert resource!=null;
-                
-                assert baseDirectory!=null;
-                
-                assert logger!=null;
-                
-                List<ResourceTypeDetail> resourceTypeDetails = null;
-
-                Pattern pattern = Pattern.compile(ANCHOR_TAG_PATTERN);
-
-                Matcher matcher = pattern.matcher(fileContent);
-                
-                while (matcher.find()) {
-                    
-                    String group = matcher.group();
-                    
-                    if (group!=null) {
-                        
-                        String scriptTagSrcValue = null;
-                        
-                        int scriptTagSrcValuePrefixIndex = group.indexOf(ANCHOR_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX);
-                        
-                        if (scriptTagSrcValuePrefixIndex!=-1) {
-                            
-                            String groupSubString = group.substring(scriptTagSrcValuePrefixIndex + ANCHOR_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX.length());
-                            
-                            if (groupSubString!=null) {
-                                
-                                int scriptTagSrcValueSuffixIndex = groupSubString.indexOf(ANCHOR_TAG_HREF_DOUBLEQUOTE_VALUE_SUFFIX);
-                                
-                                if (scriptTagSrcValueSuffixIndex!=-1) {
-                                    
-                                    scriptTagSrcValue = groupSubString.substring(0, scriptTagSrcValueSuffixIndex);
-                                    
-                                }
-                                
-                            }
-                            
-                        } else {
-                            
-                            scriptTagSrcValuePrefixIndex = group.indexOf(ANCHOR_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX);
-                            
-                            if (scriptTagSrcValuePrefixIndex!=-1) {
-                             
-                                String groupSubString = group.substring(scriptTagSrcValuePrefixIndex + ANCHOR_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX.length());
-                                
-                                if (groupSubString!=null) {
-                                    
-                                    int scriptTagSrcValueSuffixIndex = groupSubString.indexOf(ANCHOR_TAG_HREF_SINGLEQUOTE_VALUE_SUFFIX);
-                                    
-                                    if (scriptTagSrcValueSuffixIndex!=-1) {
-                                        
-                                        scriptTagSrcValue = groupSubString.substring(0, scriptTagSrcValueSuffixIndex);
-                                        
-                                    }
-                                    
-                                }
-                                
-                            }
-
-                        }
-                        
-                        if (scriptTagSrcValue!=null) {
-                            
-                            if (resourceTypeDetails==null) {
-                                resourceTypeDetails = new ArrayList<ResourceTypeDetail>();
-                            }
-                            
-                            ResourceTypeDetail resourceTypeDetail = getResourceTypeDetailInstance();
-                            resourceTypeDetail.setFileDetail(getFullyQualifiedPath(baseDirectory, resource));
-                            resourceTypeDetail.setName("anchor");
-                            resourceTypeDetail.setPattern(ANCHOR_TAG_PATTERN);
-                            resourceTypeDetail.setValue(scriptTagSrcValue);
-                            
-                            resourceTypeDetails.add(resourceTypeDetail);
-                            
-                            logger.append("File: " + resourceTypeDetail.getFileDetail() + " has " + resourceTypeDetail.getName() + " with value " + resourceTypeDetail.getValue());
-                            logger.append(System.getProperty("line.separator"));
-                            
-                        }
-                        
-                    }
-
-                }
-                
-                return resourceTypeDetails;
+                return parseResourceToResourceTypeDetail(fileContent, resource, baseDirectory, logger, ResourceType.ANCHOR, ANCHOR_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX, ANCHOR_TAG_HREF_DOUBLEQUOTE_VALUE_SUFFIX, ANCHOR_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX, ANCHOR_TAG_HREF_SINGLEQUOTE_VALUE_SUFFIX);
             }
             
         };
@@ -491,94 +284,7 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
             @Override
             public List<ResourceTypeDetail> parseResource(String fileContent, Resource resource, String baseDirectory, StringBuilder logger) {
                 
-                assert fileContent!=null;
-                
-                assert resource!=null;
-                
-                assert baseDirectory!=null;
-                
-                assert logger!=null;
-                
-                List<ResourceTypeDetail> resourceTypeDetails = null;
-                
-                Pattern pattern = Pattern.compile(IMAGE_TAG_PATTERN);
-
-                Matcher matcher = pattern.matcher(fileContent);
-                
-                while (matcher.find()) {
-                    
-                    String group = matcher.group();
-                    
-                    if (group!=null) {
-                        
-                        String scriptTagSrcValue = null;
-                        
-                        int scriptTagSrcValuePrefixIndex = group.indexOf(IMAGE_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX);
-                        
-                        if (scriptTagSrcValuePrefixIndex!=-1) {
-                            
-                            String groupSubString = group.substring(scriptTagSrcValuePrefixIndex + IMAGE_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX.length());
-                            
-                            if (groupSubString!=null) {
-                                
-                                int scriptTagSrcValueSuffixIndex = groupSubString.indexOf(IMAGE_TAG_SRC_DOUBLEQUOTE_VALUE_SUFFIX);
-                                
-                                if (scriptTagSrcValueSuffixIndex!=-1) {
-                                    
-                                    scriptTagSrcValue = groupSubString.substring(0, scriptTagSrcValueSuffixIndex);
-                                    
-                                }
-                                
-                            }
-                            
-                        } else {
-                            
-                            scriptTagSrcValuePrefixIndex = group.indexOf(IMAGE_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX);
-                            
-                            if (scriptTagSrcValuePrefixIndex!=-1) {
-                             
-                                String groupSubString = group.substring(scriptTagSrcValuePrefixIndex + IMAGE_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX.length());
-                                
-                                if (groupSubString!=null) {
-                                    
-                                    int scriptTagSrcValueSuffixIndex = groupSubString.indexOf(IMAGE_TAG_SRC_SINGLEQUOTE_VALUE_SUFFIX);
-                                    
-                                    if (scriptTagSrcValueSuffixIndex!=-1) {
-                                        
-                                        scriptTagSrcValue = groupSubString.substring(0, scriptTagSrcValueSuffixIndex);
-                                        
-                                    }
-                                    
-                                }
-                                
-                            }
-
-                        }
-                        
-                        if (scriptTagSrcValue!=null) {
-                            
-                            if (resourceTypeDetails==null) {
-                                resourceTypeDetails = new ArrayList<ResourceTypeDetail>();
-                            }
-                            
-                            ResourceTypeDetail resourceTypeDetail = getResourceTypeDetailInstance();
-                            resourceTypeDetail.setFileDetail(getFullyQualifiedPath(baseDirectory, resource));
-                            resourceTypeDetail.setName("image");
-                            resourceTypeDetail.setPattern(IMAGE_TAG_PATTERN);
-                            resourceTypeDetail.setValue(scriptTagSrcValue);
-                            
-                            resourceTypeDetails.add(resourceTypeDetail);
-                            
-                            logger.append("File: " + resourceTypeDetail.getFileDetail() + " has " + resourceTypeDetail.getName() + " with value " + resourceTypeDetail.getValue());
-                            logger.append(System.getProperty("line.separator"));
-                            
-                        }
-                        
-                    }
-
-                }
-                
-                return resourceTypeDetails;
+                return parseResourceToResourceTypeDetail(fileContent, resource, baseDirectory, logger, ResourceType.IMAGE, IMAGE_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX, IMAGE_TAG_SRC_DOUBLEQUOTE_VALUE_SUFFIX, IMAGE_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX, IMAGE_TAG_SRC_SINGLEQUOTE_VALUE_SUFFIX);
             }
             
         };
@@ -590,98 +296,135 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
 
             @Override
             public List<ResourceTypeDetail> parseResource(String fileContent, Resource resource, String baseDirectory, StringBuilder logger) {
-                
-                assert fileContent!=null;
-                
-                assert resource!=null;
-                
-                assert baseDirectory!=null;
-                
-                assert logger!=null;
-                
-                List<ResourceTypeDetail> resourceTypeDetails = null;
-                
-                Pattern pattern = Pattern.compile(FRAME_TAG_PATTERN);
+            
+                return parseResourceToResourceTypeDetail(fileContent, resource, baseDirectory, logger, ResourceType.FRAME, FRAME_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX, FRAME_TAG_SRC_DOUBLEQUOTE_VALUE_SUFFIX, FRAME_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX, FRAME_TAG_SRC_SINGLEQUOTE_VALUE_SUFFIX);
+            }
+            
+        };
+    }
+    
+    private boolean doesStringContainsHttpProtocol(String srcValue) {
+        
+        if ((srcValue!=null)&&(!srcValue.trim().equals(""))) {
+            
+            Pattern pattern = Pattern.compile(HTTP_MATCHER_REGEX);
+            
+            Matcher matcher = pattern.matcher(srcValue);
+            
+            if (matcher.find()) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private List<ResourceTypeDetail> parseResourceToResourceTypeDetail(String fileContent, Resource resource, String baseDirectory, StringBuilder logger, ResourceType resourceType, String doubleQuoteValuePrefix, String doubleQuoteValueSuffix, String singleQuoteValuePrefix, String singleQuoteValueSuffix, String typeAttributeDoubleQuoteValue, String typeAttributeSingleQuoteValue) {
+        
+        assert fileContent!=null;
+        
+        assert resource!=null;
+        
+        assert baseDirectory!=null;
+        
+        assert logger!=null;
+        
+        assert resourceType!=null;
+        
+        assert doubleQuoteValuePrefix!=null;
 
-                Matcher matcher = pattern.matcher(fileContent);
-                
-                while (matcher.find()) {
-                    
-                    String group = matcher.group();
-                    
-                    if (group!=null) {
-                        
-                        String scriptTagSrcValue = null;
-                        
-                        int scriptTagSrcValuePrefixIndex = group.indexOf(FRAME_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX);
-                        
-                        if (scriptTagSrcValuePrefixIndex!=-1) {
-                            
-                            String groupSubString = group.substring(scriptTagSrcValuePrefixIndex + FRAME_TAG_SRC_DOUBLEQUOTE_VALUE_PREFIX.length());
-                            
-                            if (groupSubString!=null) {
-                                
-                                int scriptTagSrcValueSuffixIndex = groupSubString.indexOf(FRAME_TAG_SRC_DOUBLEQUOTE_VALUE_SUFFIX);
-                                
-                                if (scriptTagSrcValueSuffixIndex!=-1) {
-                                    
-                                    scriptTagSrcValue = groupSubString.substring(0, scriptTagSrcValueSuffixIndex);
-                                    
-                                }
-                                
-                            }
-                            
-                        } else {
-                            
-                            scriptTagSrcValuePrefixIndex = group.indexOf(FRAME_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX);
-                            
-                            if (scriptTagSrcValuePrefixIndex!=-1) {
-                             
-                                String groupSubString = group.substring(scriptTagSrcValuePrefixIndex + FRAME_TAG_SRC_SINGLEQUOTE_VALUE_PREFIX.length());
-                                
-                                if (groupSubString!=null) {
-                                    
-                                    int scriptTagSrcValueSuffixIndex = groupSubString.indexOf(FRAME_TAG_SRC_SINGLEQUOTE_VALUE_SUFFIX);
-                                    
-                                    if (scriptTagSrcValueSuffixIndex!=-1) {
-                                        
-                                        scriptTagSrcValue = groupSubString.substring(0, scriptTagSrcValueSuffixIndex);
-                                        
-                                    }
-                                    
-                                }
-                                
-                            }
+        assert doubleQuoteValueSuffix!=null;
 
-                        }
+        assert singleQuoteValuePrefix!=null;
+
+        assert singleQuoteValueSuffix!=null;
+        
+        List<ResourceTypeDetail> resourceTypeDetails = null;
+        
+        Pattern pattern = Pattern.compile(resourceType.getPattern(), Pattern.DOTALL);
+
+        Matcher matcher = pattern.matcher(fileContent);
+        
+        while (matcher.find()) {
+            
+            String group = matcher.group();
+            
+            if ((group != null)&&(((typeAttributeDoubleQuoteValue == null) || ((typeAttributeDoubleQuoteValue != null) && (group.contains(typeAttributeDoubleQuoteValue)))) || ((typeAttributeSingleQuoteValue == null) || ((typeAttributeSingleQuoteValue != null) && (group.contains(typeAttributeSingleQuoteValue)))))) {
+                
+                String tagSrcValue = null;
+                
+                String tagPrefixPattern = null;
+                
+                String tagSuffixPattern = null;
+                
+                int tagSrcValuePrefixIndex = group.indexOf(doubleQuoteValuePrefix);
+                
+                if (tagSrcValuePrefixIndex!=-1) {
+                    
+                    tagPrefixPattern = doubleQuoteValuePrefix;
+                    
+                    tagSuffixPattern = doubleQuoteValueSuffix;
+                    
+                } else {
+                    
+                    tagSrcValuePrefixIndex = group.indexOf(singleQuoteValuePrefix);
+                    
+                    if (tagSrcValuePrefixIndex!=-1) {
                         
-                        if (scriptTagSrcValue!=null) {
+                        tagPrefixPattern = singleQuoteValuePrefix;
+                        
+                        tagSuffixPattern = singleQuoteValueSuffix;
+                    }
+                }
+                
+                if (tagSrcValuePrefixIndex!=-1) {
+                    
+                    String groupSubString = group.substring(tagSrcValuePrefixIndex + tagPrefixPattern.length());
+                    
+                    if (groupSubString!=null) {
+                        
+                        int tagSrcValueSuffixIndex = groupSubString.indexOf(tagSuffixPattern);
+                        
+                        if (tagSrcValueSuffixIndex!=-1) {
                             
-                            if (resourceTypeDetails==null) {
-                                resourceTypeDetails = new ArrayList<ResourceTypeDetail>();
-                            }
-                            
-                            ResourceTypeDetail resourceTypeDetail = getResourceTypeDetailInstance();
-                            resourceTypeDetail.setFileDetail(getFullyQualifiedPath(baseDirectory, resource));
-                            resourceTypeDetail.setName("frame");
-                            resourceTypeDetail.setPattern(FRAME_TAG_PATTERN);
-                            resourceTypeDetail.setValue(scriptTagSrcValue);
-                            
-                            resourceTypeDetails.add(resourceTypeDetail);
-                            
-                            logger.append("File: " + resourceTypeDetail.getFileDetail() + " has " + resourceTypeDetail.getName() + " with value " + resourceTypeDetail.getValue());
-                            logger.append(System.getProperty("line.separator"));
+                            tagSrcValue = groupSubString.substring(0, tagSrcValueSuffixIndex);
                             
                         }
                         
                     }
-
+                    
                 }
                 
-                return resourceTypeDetails;
+                if ((tagSrcValue!=null)&&(doesStringContainsHttpProtocol(tagSrcValue))) {
+                    
+                    if (resourceTypeDetails==null) {
+                        resourceTypeDetails = new ArrayList<ResourceTypeDetail>();
+                    }
+                    
+                    ResourceTypeDetail resourceTypeDetail = ContentSecurityPolicyFactory.INSTANCE.getResourceTypeDetailInstance();
+                    resourceTypeDetail.setFileDetail(getFullyQualifiedPath(baseDirectory, resource));
+                    resourceTypeDetail.setName(resourceType.getName());
+                    resourceTypeDetail.setPattern(resourceType.getPattern());
+                    resourceTypeDetail.setValue(tagSrcValue);
+                    
+                    resourceTypeDetails.add(resourceTypeDetail);
+                    
+                    logger.append("File: " + resourceTypeDetail.getFileDetail() + " has " + resourceTypeDetail.getName() + " with value " + resourceTypeDetail.getValue());
+                    logger.append(System.getProperty("line.separator"));
+                    
+                }
+                
             }
-            
-        };
+
+        }
+        
+        return resourceTypeDetails;
+    }
+    
+    
+    private List<ResourceTypeDetail> parseResourceToResourceTypeDetail(String fileContent, Resource resource, String baseDirectory, StringBuilder logger, ResourceType resourceType, String doubleQuoteValuePrefix, String doubleQuoteValueSuffix, String singleQuoteValuePrefix, String singleQuoteValueSuffix) {
+        
+        return parseResourceToResourceTypeDetail(fileContent, resource, baseDirectory, logger, resourceType, doubleQuoteValuePrefix, doubleQuoteValueSuffix, singleQuoteValuePrefix, singleQuoteValueSuffix, null, null);
     }
     
     private ResourceParser getLinkTagResourceParser() {
@@ -691,94 +434,20 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
             @Override
             public List<ResourceTypeDetail> parseResource(String fileContent, Resource resource, String baseDirectory, StringBuilder logger) {
                 
-                assert fileContent!=null;
-                
-                assert resource!=null;
-                
-                assert baseDirectory!=null;
-                
-                assert logger!=null;
-                
-                List<ResourceTypeDetail> resourceTypeDetails = null;
+                return parseResourceToResourceTypeDetail(fileContent, resource, baseDirectory, logger, ResourceType.LINK, LINK_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX, LINK_TAG_HREF_DOUBLEQUOTE_VALUE_SUFFIX, LINK_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX, LINK_TAG_HREF_SINGLEQUOTE_VALUE_SUFFIX, LINK_TAG_MANIFEST_DOUBLEQUOTE_VALUE, LINK_TAG_MANIFEST_SINGLEQUOTE_VALUE);
+            }
+            
+        };
+    }    
+    
+    private ResourceParser getStyleTagResourceParser() {
+        
+        return new ResourceParser() {
 
-                Pattern pattern = Pattern.compile(LINK_TAG_PATTERN);
-
-                Matcher matcher = pattern.matcher(fileContent);
+            @Override
+            public List<ResourceTypeDetail> parseResource(String fileContent, Resource resource, String baseDirectory, StringBuilder logger) {
                 
-                while (matcher.find()) {
-                    
-                    String group = matcher.group();
-                    
-                    if (group!=null) {
-                        
-                        String scriptTagSrcValue = null;
-                        
-                        int scriptTagSrcValuePrefixIndex = group.indexOf(LINK_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX);
-                        
-                        if (scriptTagSrcValuePrefixIndex!=-1) {
-                            
-                            String groupSubString = group.substring(scriptTagSrcValuePrefixIndex + LINK_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX.length());
-                            
-                            if (groupSubString!=null) {
-                                
-                                int scriptTagSrcValueSuffixIndex = groupSubString.indexOf(LINK_TAG_HREF_DOUBLEQUOTE_VALUE_SUFFIX);
-                                
-                                if (scriptTagSrcValueSuffixIndex!=-1) {
-                                    
-                                    scriptTagSrcValue = groupSubString.substring(0, scriptTagSrcValueSuffixIndex);
-                                    
-                                }
-                                
-                            }
-                            
-                        } else {
-                            
-                            scriptTagSrcValuePrefixIndex = group.indexOf(LINK_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX);
-                            
-                            if (scriptTagSrcValuePrefixIndex!=-1) {
-                             
-                                String groupSubString = group.substring(scriptTagSrcValuePrefixIndex + LINK_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX.length());
-                                
-                                if (groupSubString!=null) {
-                                    
-                                    int scriptTagSrcValueSuffixIndex = groupSubString.indexOf(LINK_TAG_HREF_SINGLEQUOTE_VALUE_SUFFIX);
-                                    
-                                    if (scriptTagSrcValueSuffixIndex!=-1) {
-                                        
-                                        scriptTagSrcValue = groupSubString.substring(0, scriptTagSrcValueSuffixIndex);
-                                        
-                                    }
-                                    
-                                }
-                                
-                            }
-
-                        }
-                        
-                        if (scriptTagSrcValue!=null) {
-                            
-                            if (resourceTypeDetails==null) {
-                                resourceTypeDetails = new ArrayList<ResourceTypeDetail>();
-                            }
-                            
-                            ResourceTypeDetail resourceTypeDetail = getResourceTypeDetailInstance();
-                            resourceTypeDetail.setFileDetail(getFullyQualifiedPath(baseDirectory, resource));
-                            resourceTypeDetail.setName("link");
-                            resourceTypeDetail.setPattern(LINK_TAG_PATTERN);
-                            resourceTypeDetail.setValue(scriptTagSrcValue);
-                            
-                            resourceTypeDetails.add(resourceTypeDetail);
-                            
-                            logger.append("File: " + resourceTypeDetail.getFileDetail() + " has " + resourceTypeDetail.getName() + " with value " + resourceTypeDetail.getValue());
-                            logger.append(System.getProperty("line.separator"));
-                            
-                        }
-                        
-                    }
-
-                }
-                
-                return resourceTypeDetails;
+                return parseResourceToResourceTypeDetail(fileContent, resource, baseDirectory, logger, ResourceType.STYLE, STYLE_TAG_HREF_DOUBLEQUOTE_VALUE_PREFIX, STYLE_TAG_HREF_DOUBLEQUOTE_VALUE_SUFFIX, STYLE_TAG_HREF_SINGLEQUOTE_VALUE_PREFIX, STYLE_TAG_HREF_SINGLEQUOTE_VALUE_SUFFIX, STYLE_TAG_STYLESHEET_DOUBLEQUOTE_VALUE, STYLE_TAG_STYLESHEET_SINGLEQUOTE_VALUE);
             }
             
         };
@@ -816,13 +485,81 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
         }
         
         return null;
-    }    
+    }
+    
+/*    private void scriptTest() {
+        
+        File f = new File("C:/eclipse/workspaces/fscm_FS_PASSWD_HASH_UPGRADE/src/main/webapp/WEB-INF/jsp/account/careers.jsp");
+        
+        StringBuilder rawContent = null;
+
+        try (BufferedReader bufferedReader = new BufferedReader(new java.io.FileReader(f))) {
+
+            int c = bufferedReader.read();
+            while (c != -1) {
+
+                if (rawContent == null) {
+                    rawContent = new StringBuilder();
+                }
+                rawContent.append((char) c);
+
+                c = bufferedReader.read();
+            }
+            
+        } catch (IOException e) {
+            
+            log(e, Project.MSG_ERR);
+
+        }
+        
+        if ((rawContent!=null)&&(rawContent.length()>0)) {
+            
+            //Pattern pattern = Pattern.compile("(?s)<script\\s(.*?)</script>");
+            //Pattern.DOTALL
+            Pattern pattern = Pattern.compile("<script.*?</script>", Pattern.DOTALL);
+            
+            Matcher matcher = pattern.matcher(rawContent);
+            
+            while (matcher.find()) {
+                
+                String group = matcher.group();                
+                
+                System.out.println(group);
+            }
+            
+        }
+        
+    }*/
     
     private String getFullyQualifiedPath(String baseDirectory, Resource resource) {
         
         if ((baseDirectory!=null)&&(resource!=null)&&(resource.getName()!=null)) {
             
             return baseDirectory + "/" + resource.getName().replaceAll(Matcher.quoteReplacement("\\"), "/");
+            
+        }
+        
+        return null;
+    }
+    
+    private String[] splitAndTrim() {
+        
+        if ((getIncludes()!=null)) {
+            
+            String[] splitStrings = getIncludes().split(",");
+            
+            if ((splitStrings!=null)&&(splitStrings.length>0)) {
+                
+                for (int i=0; i<splitStrings.length; i++) {
+                    
+                    if (splitStrings[i]!=null) {
+                        
+                        splitStrings[i] = splitStrings[i].trim();
+                    }
+                }
+                
+                return splitStrings;
+            }
             
         }
         
@@ -855,34 +592,12 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
 
     public static void main(String[] argc ) {
         
-        String baseDirectory = "C:/eclipse/workspaces/fscm_FS_PASSWD_HASH_UPGRADE";
-        String includes = "**\\*.jsp, **\\*.html, **\\*.xml, **\\*.properties";
+        String baseDirectory = "C:/eclipse/workspaces/csp-test";
+        String includes = "**\\*.jsp, **\\*.html, **\\*.xml, **\\*.properties, **\\*.js, **\\*.css";
         ContentSecurityPolicyWhiteListCollector contentSecurityPolicyWhiteListCollector = new ContentSecurityPolicyWhiteListCollector();
         contentSecurityPolicyWhiteListCollector.setBaseDirectory(baseDirectory);
         contentSecurityPolicyWhiteListCollector.setIncludes(includes);
         contentSecurityPolicyWhiteListCollector.execute();
-        
-/*        String str_1 = "<img src='<c:url value=\"/page_rwd/images/spinning.gif\"></c:url>";
-        String str_2 = "<img src=\"<c:url value='/page_rwd/images/icon_alert.gif'></c:url>\" alt=\"ATTENTION\" title=\"ATTENTION\">";
-        
-        Pattern pattern = Pattern.compile("(src=([\"]))|(src=([']))");
-        Matcher matcher = pattern.matcher(str_1);
-        
-        while (matcher.find()) {
-            
-            String group = matcher.group();
-            
-            System.out.println(group);
-        }
-            
-        matcher = pattern.matcher(str_2);
-        while (matcher.find()) {
-            
-            String group = matcher.group();
-            
-            System.out.println(group);
-        }*/
-        
     }
     
 }
