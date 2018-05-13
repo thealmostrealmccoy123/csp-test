@@ -1,8 +1,10 @@
 <!doctype html>
+<%@ taglib prefix="csp" uri="/WEB-INF/taglib/csp.tld" %>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>click demo</title>
+  <csp:nonce>
   <style>
   p {
     color: red;
@@ -26,6 +28,6 @@ $( "p" ).click(function() {
   $( this ).slideUp();
 });
 </script>
- 
+  </csp:nonce> 
 </body>
 </html>
