@@ -43,6 +43,7 @@ import org.apache.commons.digester.Digester;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Task;
+import org.apache.tools.ant.util.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
@@ -145,7 +146,7 @@ public class ContentSecurityPolicyGenerator extends Task {
                             
                             policyHeader.setNonce(Boolean.FALSE.toString());
                         }
-
+                        
                         contentSecurityPolicy.setPolicyHeader(policyHeader);
                     }
                     
@@ -191,7 +192,16 @@ public class ContentSecurityPolicyGenerator extends Task {
                         policyDetail.setType(resourceType.getPolicy());
                         
                         str = new StringBuilder();
-                        str.append(" 'self'");
+                        
+                        if (resourceType.equals(ResourceType.SCRIPT)) {
+                            
+                            str.append(" 'strict-dynamic'");
+                            
+                        } else {
+                            
+                            str.append(" 'self'");
+                        }
+                        
                     }
                     
                     str.append(" ");
