@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<contentSecurityPolicy>
+<policyHeader>
+<key><![CDATA[Content-Security-Policy]]></key>
+<prefix><![CDATA[report-uri /csp_test/ContentSecurityPolicyViolationReporter; default-src 'self']]></prefix>
+<nonce>true</nonce>
+</policyHeader>
+<policyDetail>
+<type><![CDATA[style-src]]></type>
+<policy><![CDATA[ 'self' https://jqueryui.com/resources/demos/style.css https://getbootstrap.com/dist/css/bootstrap.min.css https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css]]></policy>
+</policyDetail>
+<policyDetail>
+<type><![CDATA[script-src]]></type>
+<policy><![CDATA[ 'strict-dynamic' http://laptop-maughb20:10148/csp_test/jsp/project.js https://cdn.firebase.com/libs/angularfire/0.9.0/angularfire.min.js http://laptop-maughb20:10148/csp_test/jsp/components.js https://code.jquery.com/jquery-1.10.2.js https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular-resource.min.js http://laptop-maughb20:10148/csp_test/jsp/app.js https://code.jquery.com/jquery-3.2.1.slim.min.js https://code.jquery.com/ui/1.12.1/jquery-ui.js https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular-route.min.js https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js https://code.jquery.com/jquery-1.12.4.js http://laptop-maughb20:10148/csp_test/jsp/project-list.js http://laptop-maughb20:10148/csp_test/jsp/todo.js https://cdn.firebase.com/js/client/2.0.4/firebase.js https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js https://getbootstrap.com/assets/js/vendor/jquery-slim.min.js https://cdnjs.cloudflare.com/ajax/libs/holder/2.9.6/holder.min.js]]></policy>
+</policyDetail>
+</contentSecurityPolicy>
