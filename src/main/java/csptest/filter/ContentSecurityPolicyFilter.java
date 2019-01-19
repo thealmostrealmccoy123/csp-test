@@ -49,9 +49,9 @@ public class ContentSecurityPolicyFilter implements Filter {
     
     private static final String NONCE_GENERATOR_ALGORITHM_PROVIDER = "SUN";
     
-    private static final String CONTENT_SECURITY_POLICY_KEY = "contentSecurityPolicyKey";
+    private static final String CONTENT_SECURITY_POLICY_KEY = "contentSecurityPolicyKey123";
     
-    private static final String CONTENT_SECURITY_POLICY_VALUE = "contentSecurityPolicyValue";
+    private static final String CONTENT_SECURITY_POLICY_VALUE = "contentSecurityPolicyValue123";
     
     private static final String POLICY_HEADER_NONCE = "policyHeaderNonce";
     
@@ -118,7 +118,7 @@ public class ContentSecurityPolicyFilter implements Filter {
             
             String contentSecurityPolicyKey = (String)httpRequest.getSession().getAttribute(CONTENT_SECURITY_POLICY_KEY);
             
-            String contentSecurityPolicyValue = (String)httpRequest.getSession().getAttribute(CONTENT_SECURITY_POLICY_VALUE); 
+            String contentSecurityPolicyValue = (String)httpRequest.getSession().getAttribute(CONTENT_SECURITY_POLICY_VALUE);
             
             httpResponse.setHeader(contentSecurityPolicyKey, contentSecurityPolicyValue);
             
