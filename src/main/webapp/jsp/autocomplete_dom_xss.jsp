@@ -7,47 +7,51 @@
   <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
   <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-  <script>
-  $( function() {
-    var availableTags = [
-      "ActionScript",
-      "AppleScript",
-      "Asp",
-      "BASIC",
-      "C",
-      "C++",
-      "Clojure",
-      "COBOL",
-      "ColdFusion",
-      "Erlang",
-      "Fortran",
-      "Groovy",
-      "Haskell",
-      "Java",
-      "JavaScript",
-      "Lisp",
-      "Perl",
-      "PHP",
-      "Python",
-      "Ruby",
-      "Scala",
-      "Scheme"
-    ];
-    $( "#tags" ).autocomplete({
-      source: availableTags
-    });
-  } );
-
-    document.write("You are visiting site: " + document.location.href + ".");
-  </script>
 </head>
 <body>
  
-<div class="ui-widget">
+<div class="ui-widget" id="tagId">
   <label for="tags">Tags: </label>
   <input id="tags">
 </div>
  
+<div class="ui-widget" id="siteId"></div> 
+
+<script>
+$(document).ready(function(){
+
+    var availableTags = [
+        "ActionScript",
+        "AppleScript",
+        "Asp",
+        "BASIC",
+        "C",
+        "C++",
+        "Clojure",
+        "COBOL",
+        "ColdFusion",
+        "Erlang",
+        "Fortran",
+        "Groovy",
+        "Haskell",
+        "Java",
+        "JavaScript",
+        "Lisp",
+        "Perl",
+        "PHP",
+        "Python",
+        "Ruby",
+        "Scala",
+        "Scheme"
+      ];
+    
+      $( "#tags" ).autocomplete({
+        source: availableTags
+      });
+	
+      document.getElementById("siteId").innerHTML = "You are visiting site: " + document.location.href + ".";
+});
+</script>
  
 </body>
 </html>

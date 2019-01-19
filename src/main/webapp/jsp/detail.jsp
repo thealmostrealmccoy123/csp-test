@@ -1,4 +1,13 @@
-    <form name="myForm">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Details</title>
+  </head>
+  <body>
+
+    <form name="myForm" accept-charset="utf-8">
       <div class="control-group" ng-class="{error: myForm.name.$invalid && !myForm.name.$pristine}">
         <label>Name</label>
         <input type="text" name="name" ng-model="editProject.project.name" required>
@@ -25,3 +34,6 @@
       <button ng-click="editProject.destroy()"
               ng-show="editProject.project.$id" class="btn btn-danger">Delete</button>
     </form>
+    
+  </body>
+</html>
