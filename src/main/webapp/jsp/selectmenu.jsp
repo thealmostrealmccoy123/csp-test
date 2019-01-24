@@ -1,9 +1,11 @@
 <!doctype html>
+<%@ taglib prefix="csp" uri="/WEB-INF/taglib/csp.tld" %>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>jQuery UI Selectmenu - Default functionality</title>
+  <csp:nonce>
   <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
   <link rel="stylesheet" href="https:/resources/demos/style.css">
   <style>
@@ -101,6 +103,6 @@
  
 </div>
  
- 
+ </csp:nonce>
 </body>
 </html>

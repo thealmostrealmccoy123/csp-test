@@ -1,6 +1,8 @@
     <!doctype html>
+    <%@ taglib prefix="csp" uri="/WEB-INF/taglib/csp.tld" %>
     <html ng-app="todoApp">
       <head>
+       <csp:nonce>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
         <script src="todo.js"></script>
         <link rel="stylesheet" href="todo.css">
@@ -25,4 +27,5 @@
           </form>
         </div>
       </body>
+      </csp:nonce>
     </html>

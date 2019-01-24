@@ -1,4 +1,5 @@
 <!doctype html>
+<%@ taglib prefix="csp" uri="/WEB-INF/taglib/csp.tld" %>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -8,7 +9,7 @@
     <link rel="icon" href="https://getbootstrap.com/favicon.ico">
 
     <title>Carousel Template for Bootstrap</title>
-
+    <csp:nonce>
     <!-- Bootstrap core CSS -->
     <link href="https://getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -78,4 +79,5 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/holder/2.9.6/holder.min.js"></script>
   </body>
+  </csp:nonce>
 </html>

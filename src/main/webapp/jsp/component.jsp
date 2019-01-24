@@ -1,6 +1,8 @@
     <!doctype html>
+<%@ taglib prefix="csp" uri="/WEB-INF/taglib/csp.tld" %>    
     <html ng-app="app">
       <head>
+      <csp:nonce>
         <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
         <script src="components.js"></script>
         <script src="app.js"></script>
@@ -21,4 +23,5 @@
           </pane>
         </tabs>
       </body>
+      </csp:nonce>
     </html>
