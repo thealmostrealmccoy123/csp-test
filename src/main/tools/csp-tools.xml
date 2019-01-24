@@ -28,8 +28,8 @@
   <!-- ================================================ -->
   <!-- content_security_policy_white_list_collector    -->
   <!-- ================================================ -->
-  <target name="content_security_policy_white_list_collector" description="Usage: ant -f csp-tools.xml content_security_policy_white_list_collector -Dprojectroot=C:/eclipse/workspaces/csp-test/src/main/webapp -DselfScriptSource=http://localhost ">
-	<contentSecurityPolicyWhiteListCollector baseDirectory="${projectroot}" selfScriptSource="${selfScriptSource}" includes="**\*.jsp, **\*.html, **\*.xml, **\*.properties, **\*.js, **\*.css"/>
+  <target name="content_security_policy_white_list_collector" description="Usage: ant -f csp-tools.xml content_security_policy_white_list_collector -Dprojectroot=C:/eclipse/workspaces/csp-test/src/main/webapp">
+	<contentSecurityPolicyWhiteListCollector baseDirectory="${projectroot}" includes="**\*.jsp, **\*.html, **\*.xml, **\*.properties, **\*.js, **\*.css"/>
   </target>
 	
   <!-- ================================================ -->
