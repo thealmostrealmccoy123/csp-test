@@ -108,8 +108,6 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
     
     private List<ResourceParser> resourceParsers;
     
-    private String selfScriptSource;
-    
     public ContentSecurityPolicyWhiteListCollector() {
         
         List<ResourceParser> resourceParsers = new ArrayList<ResourceParser>();
@@ -397,25 +395,7 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
                     
                 }
                 
-                String calculatedTagSrcValue = null;
-                
-                if (resourceType.equals(ResourceType.SCRIPT)) {
-                    
-                    if ((tagSrcValue!=null)&&(!doesStringContainsHttpProtocol(tagSrcValue))) {
-                        
-                        calculatedTagSrcValue = getSelfScriptSource() + tagSrcValue;
-                        
-                    } else {
-                        
-                        calculatedTagSrcValue = tagSrcValue;
-                    }
-                    
-                } else {
-                    
-                    calculatedTagSrcValue = tagSrcValue;
-                }
-                
-                if ((calculatedTagSrcValue!=null)&&(doesStringContainsHttpProtocol(calculatedTagSrcValue))) {
+                if ((tagSrcValue!=null)&&(doesStringContainsHttpProtocol(tagSrcValue))) {
                     
                     if (resourceTypeDetails==null) {
                         resourceTypeDetails = new ArrayList<ResourceTypeDetail>();
@@ -425,7 +405,7 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
                     resourceTypeDetail.setFileDetail(getFullyQualifiedPath(baseDirectory, resource));
                     resourceTypeDetail.setName(resourceType.getName());
                     resourceTypeDetail.setPattern(resourceType.getPattern());
-                    resourceTypeDetail.setValue(calculatedTagSrcValue);
+                    resourceTypeDetail.setValue(tagSrcValue);
                     
                     resourceTypeDetails.add(resourceTypeDetail);
                     
@@ -608,14 +588,6 @@ public class ContentSecurityPolicyWhiteListCollector extends MatchingTask {
 
     private void setResourceParsers(List<ResourceParser> resourceParsers) {
         this.resourceParsers = resourceParsers;
-    }
-
-    public String getSelfScriptSource() {
-        return selfScriptSource;
-    }
-
-    public void setSelfScriptSource(String selfScriptSource) {
-        this.selfScriptSource = selfScriptSource;
     }
 
     public static void main(String[] argc ) {
